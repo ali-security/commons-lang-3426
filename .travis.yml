@@ -24,7 +24,7 @@ jdk:
 
 before_install:
   # Ensure JAVA_HOME is set (Trusty handles this automatically for JDK7/8)
-  - export JAVA_HOME=$(/usr/libexec/java_home 2>/dev/null || echo $JAVA_HOME)
+  - export JAVA_HOME=$(/usr/libexec/java_home)
 
   # Install Oracle JDK 9 manually (not included in Trusty)
   - |
@@ -37,9 +37,6 @@ before_install:
       java -version
     fi
 
-install:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
-
 
 after_success:
-  - mvn clean cobertura:cobertura -Ptravis-cobertura
+  - mvn clean cobertura:cobertura
