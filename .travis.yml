@@ -20,18 +20,28 @@ jdk:
   - openjdk7
   - oraclejdk8
   - oraclejdk9
-  
-env:
-  - MAVEN_VERSION=3.2.5
-  
+
 before_install:
-  - export JAVA_HOME=$(/usr/libexec/java_home)
+  # Set JAVA_HOME properly for OpenJDK7 or Oracle JDK8
   - |
-    if [[ "$TRAVIS_JDK_VERSION" == "openjdk6" ]]; then
-      wget https://archive.apache.org/dist/maven/maven-3/3.2.5/binaries/apache-maven-3.2.5-bin.tar.gz
-      tar -xzf apache-maven-3.2.5-bin.tar.gz
-      export PATH=$PWD/apache-maven-3.2.5/bin:$PATH
+    if [[ "$TRAVIS_JDK_VERSION" == "openjdk7" ]]; then
+      jdk_switcher use openjdk7
+    elif [[ "$TRAVIS_JDK_VERSION" == "oraclejdk8" ]]; then
+      jdk_switcher use oraclejdk8
+    elif [[ "$TRAVIS_JDK_VERSION" == "oraclejdk9" ]]; then
+      echo "Installing Oracle JDK9..."
+      wget https://download.oracle.com/java/GA/jdk9/9/binaries/jdk-9_linux-x64_bin.tar.gz
+      tar -xzf jdk-9_linux-x64_bin.tar.gz
+      export JAVA_HOME=$PWD/jdk-9
+      export PATH=$JAVA_HOME/bin:$PATH
+      java -version
     fi
-    
+
+install:
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+
+script:
+  - mvn test -B
+
 after_success:
   - mvn clean cobertura:cobertura
