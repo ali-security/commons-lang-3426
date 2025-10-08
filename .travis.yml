@@ -14,22 +14,61 @@
 # limitations under the License.
 
 language: java
-sudo: false
-dist: trusty
-
-jdk:
-  - openjdk7
-  - oraclejdk8
-  - oraclejdk9
+sudo: required
+dist: jammy
 
 env:
-  - MAVEN_VERSION=3.6.3
+  global:
+    - MAVEN_OPTS="-Xmx1024m"
+  matrix:
+    - JDK=openjdk7
+    - JDK=oraclejdk8
+    - JDK=oraclejdk9
 
 before_install:
-  - export JAVA_HOME=$(/usr/libexec/java_home)
-  - wget https://archive.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
-  - tar -xzf apache-maven-3.6.3-bin.tar.gz
-  - export PATH=$PWD/apache-maven-3.6.3/bin:$PATH
+  - echo "Installing JDK: $JDK"
+  - sudo apt-get update -y
+
+  # ---- Install OpenJDK 7 ----
+  - |
+    if [ "$JDK" = "openjdk7" ]; then
+      echo "deb http://archive.ubuntu.com/ubuntu trusty main universe" | sudo tee /etc/apt/sources.list.d/trusty.list
+      sudo apt-get update -y
+      sudo apt-get install -y openjdk-7-jdk || true
+      if [ ! -d /usr/lib/jvm/java-7-openjdk-amd64 ]; then
+        echo "⚠️  Could not install OpenJDK 7 from APT — trying AdoptOpenJDK mirror"
+        wget https://archive.adoptopenjdk.net/openjdk7/nightly/openjdk-7u332-b00/OpenJDK7U-jdk_x64_linux_hotspot_7u332b00.tar.gz
+        sudo mkdir -p /usr/lib/jvm
+        sudo tar -xzf OpenJDK7U-jdk_x64_linux_hotspot_7u332b00.tar.gz -C /usr/lib/jvm
+        sudo mv /usr/lib/jvm/jdk7u332-b00 /usr/lib/jvm/java-7-openjdk-amd64
+      fi
+      export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+      export PATH="$JAVA_HOME/bin:$PATH"
+    fi
+
+  # ---- Install Oracle JDK 8 ----
+  - |
+    if [ "$JDK" = "oraclejdk8" ]; then
+      wget https://download.oracle.com/java/18/archive/jdk-8u202-linux-x64.tar.gz
+      sudo mkdir -p /usr/lib/jvm
+      sudo tar -xzf jdk-8u202-linux-x64.tar.gz -C /usr/lib/jvm
+      export JAVA_HOME=/usr/lib/jvm/jdk1.8.0_202
+      export PATH="$JAVA_HOME/bin:$PATH"
+    fi
+
+  # ---- Install Oracle JDK 9 ----
+  - |
+    if [ "$JDK" = "oraclejdk9" ]; then
+      wget https://download.oracle.com/java/GA/jdk9/9/binaries/jdk-9_linux-x64_bin.tar.gz
+      sudo mkdir -p /usr/lib/jvm
+      sudo tar -xzf jdk-9_linux-x64_bin.tar.gz -C /usr/lib/jvm
+      export JAVA_HOME=/usr/lib/jvm/jdk-9
+      export PATH="$JAVA_HOME/bin:$PATH"
+    fi
+
+  # ---- Verify Java ----
+  - java -version
+  - javac -version
 
 script:
   - mvn
