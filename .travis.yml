@@ -26,7 +26,6 @@ env:
     - JDK=oraclejdk9
 
 before_install:
-  - echo "Installing JDK: $JDK"
   - sudo apt-get update -y
 
   # ---- Install OpenJDK 7 ----
