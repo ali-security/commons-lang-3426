@@ -13,9 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 language: java
-sudo: false
-dist: trusty
-group: edge
+sudo: required
+services:
+  - docker
+
+env:
+  - MAVEN_OPTS="-Xmx1024m"
 
 jdk:
   - openjdk7
@@ -23,26 +26,27 @@ jdk:
   - oraclejdk9
 
 before_install:
-  # Set JAVA_HOME properly for OpenJDK7 or Oracle JDK8
+  # Pull the pinned Travis Trusty legacy image
+  - docker pull travisci/ci-trusty:packer-1511271010
+
+  # Prepare a command prefix to run inside Docker
+  - export DOCKER_CMD="docker run --rm -v $PWD:$PWD -w $PWD travisci/ci-trusty:packer-1511271010 bash -c"
+
+  # For Oracle JDK9, download and set JAVA_HOME inside Docker
   - |
-    if [[ "$TRAVIS_JDK_VERSION" == "openjdk7" ]]; then
-      jdk_switcher use openjdk7
-    elif [[ "$TRAVIS_JDK_VERSION" == "oraclejdk8" ]]; then
-      jdk_switcher use oraclejdk8
-    elif [[ "$TRAVIS_JDK_VERSION" == "oraclejdk9" ]]; then
-      echo "Installing Oracle JDK9..."
-      wget https://download.oracle.com/java/GA/jdk9/9/binaries/jdk-9_linux-x64_bin.tar.gz
-      tar -xzf jdk-9_linux-x64_bin.tar.gz
-      export JAVA_HOME=$PWD/jdk-9
-      export PATH=$JAVA_HOME/bin:$PATH
-      java -version
+    if [[ "$TRAVIS_JDK_VERSION" == "oraclejdk9" ]]; then
+      ORACLE_JDK9_URL="https://download.oracle.com/java/GA/jdk9/9/binaries/jdk-9_linux-x64_bin.tar.gz"
+      export DOCKER_CMD="$DOCKER_CMD 'wget -q $ORACLE_JDK9_URL && tar -xzf jdk-9_linux-x64_bin.tar.gz && export JAVA_HOME=$PWD/jdk-9 && export PATH=$JAVA_HOME/bin:$PATH && java -version && mvn'"
     fi
 
 install:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+  # Run Maven install inside Docker
+  - $DOCKER_CMD "mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V"
 
 script:
-  - mvn test -B
+  # Run tests inside Docker
+  - $DOCKER_CMD "mvn test -B"
 
 after_success:
-  - mvn clean cobertura:cobertura
+  # Run cobertura inside Docker
+  - $DOCKER_CMD "mvn clean cobertura:cobertura"
