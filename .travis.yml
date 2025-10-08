@@ -40,8 +40,6 @@ before_install:
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 
-script:
-  - mvn
 
 after_success:
   - mvn clean cobertura:cobertura -Ptravis-cobertura
